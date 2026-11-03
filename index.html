@@ -4,51 +4,89 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Nubes del Bosque — Maqueta 3D</title>
 <style>
-html,body{margin:0;height:100%;overflow:hidden;background:#dce8df;font-family:Inter,system-ui,Arial;color:#18352c}canvas{display:block}#panel{position:fixed;left:18px;top:18px;max-width:310px;background:rgba(248,250,244,.92);backdrop-filter:blur(10px);padding:17px 18px;border-radius:16px;box-shadow:0 8px 30px #18352c25}h1{font-size:19px;margin:0 0 4px;letter-spacing:.02em}p{font-size:12px;line-height:1.45;margin:5px 0 12px;color:#587065}.legend{font-size:12px;line-height:1.9}.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px}button{border:0;border-radius:9px;padding:9px 12px;background:#285844;color:white;font-weight:600;cursor:pointer;margin:8px 5px 0 0}button.secondary{background:#dce8df;color:#285844}#hint{position:fixed;right:18px;bottom:16px;background:#18352cdd;color:#fff;padding:9px 13px;border-radius:10px;font-size:11px}#loading{position:fixed;inset:0;display:grid;place-items:center;background:#dce8df;color:#285844;font-weight:700;z-index:5}
+:root{color-scheme:light}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#dce8df;font-family:Inter,system-ui,Arial,sans-serif;color:#18352c}
+canvas{display:block;touch-action:none}#panel{position:fixed;z-index:2;left:18px;top:18px;width:min(330px,calc(100vw - 36px));background:rgba(249,251,245,.94);backdrop-filter:blur(12px);padding:17px 18px;border:1px solid #fff;border-radius:16px;box-shadow:0 8px 30px #18352c25}
+h1{font-size:19px;margin:0 0 4px;letter-spacing:.02em}p{font-size:12px;line-height:1.45;margin:5px 0 12px;color:#587065}.legend{font-size:12px;line-height:1.9}.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px}button{border:0;border-radius:9px;padding:9px 12px;background:#285844;color:white;font-weight:650;cursor:pointer;margin:8px 5px 0 0}button.secondary{background:#e2ebe3;color:#285844}#hint{position:fixed;z-index:2;right:18px;bottom:16px;background:#18352cdd;color:#fff;padding:9px 13px;border-radius:10px;font-size:11px}
+#loading{position:fixed;z-index:9;inset:0;display:grid;place-items:center;background:#dce8df;color:#285844;font-weight:700;text-align:center;padding:28px}#loading small{display:block;font-weight:400;margin-top:8px;color:#587065}#loading.error{color:#8b2d21}#panel .subtitle{font-size:12px;color:#587065}
+@media(max-width:600px){#panel{left:10px;top:10px;padding:13px;width:270px}h1{font-size:16px}#hint{right:10px;bottom:10px;left:10px;text-align:center;font-size:10px}}
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js'"></script>
 </head>
-<body><div id="loading">Preparando la maqueta 3D…</div>
-<div id="panel"><h1>NUBES DEL BOSQUE</h1><p>Eco-Lodge &amp; Senderos · Costa Rica<br>Maqueta conceptual 3D de implantación en ladera tropical</p>
-<div class="legend"><div><span class="dot" style="background:#9a6842"></span>4 cabañas dobles · nivel alto</div><div><span class="dot" style="background:#bd8955"></span>2 cabañas familiares</div><div><span class="dot" style="background:#d6b77b"></span>Restaurante abierto</div><div><span class="dot" style="background:#7eaa8b"></span>Terraza de yoga panorámica</div></div>
-<button id="spin">Pausa giro</button><button class="secondary" id="home">Vista inicial</button><button class="secondary" id="labels">Ocultar rótulos</button></div>
-<div id="hint">Arrastra: girar · Rueda: zoom · Clic derecho: desplazar</div>
+<body>
+<div id="loading">Preparando la maqueta 3D…<small>Construyendo el terreno y las cabañas</small></div>
+<div id="panel"><h1>NUBES DEL BOSQUE</h1><div class="subtitle">Eco-Lodge &amp; Senderos · Costa Rica</div><p>Maqueta conceptual 3D sobre una ladera tropical.</p>
+<div class="legend"><div><span class="dot" style="background:#9a6842"></span>4 cabañas dobles · nivel alto</div><div><span class="dot" style="background:#bd8955"></span>2 cabañas familiares</div><div><span class="dot" style="background:#d6b77b"></span>Restaurante abierto</div><div><span class="dot" style="background:#7eaa8b"></span>Terraza panorámica de yoga</div></div>
+<button id="spin">Pausar giro</button><button class="secondary" id="home">Vista inicial</button><button class="secondary" id="labels">Ocultar rótulos</button></div>
+<div id="hint">Arrastra para girar · Rueda para zoom · Botón derecho para desplazar</div>
 <script>
-(()=>{
-if(!window.THREE){document.getElementById('loading').textContent='No se pudo cargar Three.js. Revisa tu conexión a internet.';return;}
-const scene=new THREE.Scene();scene.background=new THREE.Color(0xc9ddd1);scene.fog=new THREE.Fog(0xc9ddd1,65,145);
-const camera=new THREE.PerspectiveCamera(42,innerWidth/innerHeight,.1,300);camera.position.set(43,38,55);
-const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;document.body.appendChild(renderer.domElement);
-const controls=new THREE.OrbitControls(camera,renderer.domElement);controls.target.set(0,8,0);controls.enableDamping=true;controls.maxPolarAngle=Math.PI*.49;controls.minDistance=18;controls.maxDistance=105;controls.autoRotate=true;controls.autoRotateSpeed=.45;
-scene.add(new THREE.HemisphereLight(0xe8f5ec,0x536b4d,1.15));const sun=new THREE.DirectionalLight(0xffe3bd,1.65);sun.position.set(-28,48,24);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-65;sun.shadow.camera.right=65;sun.shadow.camera.top=65;sun.shadow.camera.bottom=-65;scene.add(sun);
-const mat=(c,r=.9)=>new THREE.MeshStandardMaterial({color:c,roughness:r});const grass=mat(0x547c55),earth=mat(0x8b7652),wood=mat(0x956443),wood2=mat(0xb17d50),roof=mat(0x303a35,.75),glass=new THREE.MeshStandardMaterial({color:0xffd99a,emissive:0xffa94d,emissiveIntensity:.55}),leafM=[mat(0x285c3e),mat(0x39734a),mat(0x477d4e),mat(0x1f5039)],trunk=mat(0x60452e),stone=mat(0x777d69),water=mat(0x5faaa0,.25);
-function terrainY(x,z){return 3.5+0.105*(z+18)+2.1*Math.sin((x+9)*.105)+1.1*Math.cos(z*.13)+.7*Math.sin((x+z)*.16)}
-const geo=new THREE.PlaneGeometry(76,76,100,100);geo.rotateX(-Math.PI/2);const pos=geo.attributes.position;for(let i=0;i<pos.count;i++){let x=pos.getX(i),z=pos.getZ(i);pos.setY(i,terrainY(x,z));}geo.computeVertexNormals();const land=new THREE.Mesh(geo,grass);land.receiveShadow=true;scene.add(land);
-const base=new THREE.Mesh(new THREE.BoxGeometry(76,2.3,76),mat(0x655b43));base.position.y=-1.3;base.receiveShadow=true;scene.add(base);
-for(let i=0;i<36;i++){let a=i/36*Math.PI*2,x=Math.cos(a)*37,z=Math.sin(a)*37;const b=new THREE.Mesh(new THREE.DodecahedronGeometry(1.2+Math.random()*1.4,0),stone);b.position.set(x,terrainY(x,z)-.7,z);b.scale.set(1.2,.55,1.5);b.rotation.y=Math.random()*3;b.castShadow=true;scene.add(b)}
-function box(w,h,d,m,x,y,z,rot=0){let o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y+h/2,z);o.rotation.y=rot;o.castShadow=true;o.receiveShadow=true;scene.add(o);return o}
-function label(txt,x,y,z){const c=document.createElement('canvas');c.width=512;c.height=128;const ctx=c.getContext('2d');ctx.fillStyle='rgba(22,48,37,.82)';ctx.roundRect(8,8,496,112,24);ctx.fill();ctx.fillStyle='#fff';ctx.font='bold 38px Arial';ctx.textAlign='center';ctx.fillText(txt,256,78);const t=new THREE.CanvasTexture(c);const s=new THREE.Sprite(new THREE.SpriteMaterial({map:t,transparent:true,depthTest:false}));s.position.set(x,y,z);s.scale.set(8,2,1);scene.add(s);labelSprites.push(s)}const labelSprites=[];
-function cabin(x,z,kind='doble',rot=0){let y=terrainY(x,z);let w=kind==='familiar'?6.2:5.1,d=kind==='familiar'?5.4:4.6;box(w,.35,d,stone,x,y,z,rot);box(w,.22,d,wood2,x,y+.35,z,rot);box(w,2.45,d,wood,x,y+.57,z,rot);
-box(w*.68,1.35,.08,glass,x,y+1.0,z+d/2+.045,rot);box(w+.9,.22,d*.45,wood2,x,y+.45,z+d*.73,rot);
-let r=new THREE.Mesh(new THREE.BoxGeometry(w+1,.18,d+1),roof);r.position.set(x,y+3.12,z);r.rotation.y=rot;r.castShadow=true;scene.add(r);
-const ridge=new THREE.Mesh(new THREE.BoxGeometry(w+1,.16,.22),roof);ridge.position.set(x,y+3.55,z);ridge.rotation.y=rot;ridge.castShadow=true;scene.add(ridge);
-for(let side of [-1,1]){let shape=new THREE.Shape();shape.moveTo(-w/2,0);shape.lineTo(w/2,0);shape.lineTo(0,1.5);shape.closePath();let g=new THREE.ShapeGeometry(shape);let m=new THREE.Mesh(g,wood2);m.position.set(x,y+1.8,z+side*(d/2+.02));m.rotation.y=rot+(side===-1?Math.PI:0);scene.add(m)}
-label(kind==='familiar'?'Cabaña familiar':'Cabaña doble',x,y+5.2,z);
-}
-cabin(-15,13,'doble',-.16);cabin(-5,17,'doble',.08);cabin(6,16,'doble',-.1);cabin(16,11,'doble',.18);cabin(-12,-1,'familiar',.15);cabin(12,-3,'familiar',-.18);
-function gableBuilding(x,z,w,d,h,caption){let y=terrainY(x,z);box(w,h,d,wood2,x,y,z);box(w*.78,h*.52,.09,glass,x,y+.4,z+d/2+.05);let r=new THREE.Mesh(new THREE.ConeGeometry(w*.78,1.7,4),roof);r.position.set(x,y+h+.75,z);r.rotation.y=Math.PI/4;r.scale.z=d/w;r.castShadow=true;scene.add(r);label(caption,x,y+h+3,z)}
-gableBuilding(-1,-16,11,8,3.2,'Restaurante abierto');box(14,.22,10,wood2,-1,terrainY(-1,-16)+.12,-16);
-let yY=terrainY(22,-17);box(12,.25,8,wood2,22,yY+.1,-17,.1);for(let i=0;i<4;i++){box(.18,1.1,.18,trunk,17+i*3.2,yY+.25,-20);let rope=new THREE.Mesh(new THREE.BoxGeometry(.08,.08,7),wood);rope.position.set(22,yY+1.2,-17);scene.add(rope)}label('Terraza de yoga',22,yY+3,-17);
-const pts=[];for(let i=0;i<=100;i++){let t=i/100;let z=25-t*48;let x=-22+44*t+5*Math.sin(t*4*Math.PI);pts.push(new THREE.Vector3(x,terrainY(x,z)+.16,z));}const path=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),220,1.05,8,false),earth);path.receiveShadow=true;scene.add(path);
-let yp=terrainY(-25,-24);box(13,.22,8,stone,-25,yp+.08,-24);for(let i=0;i<3;i++){box(2.3,.08,4,mat(0xaaa58e),-29+i*4,yp+.22,-24)}label('Acceso y parqueo',-25,yp+3,-24);
-function tree(x,z,s=1){let y=terrainY(x,z);let h=(4+Math.random()*4)*s;let t=new THREE.Mesh(new THREE.CylinderGeometry(.16*s,.32*s,h*.42,7),trunk);t.position.set(x,y+h*.21,z);t.castShadow=true;scene.add(t);for(let j=0;j<3;j++){let crown=new THREE.Mesh(new THREE.SphereGeometry((1.45-j*.18)*s,9,7),leafM[Math.floor(Math.random()*leafM.length)]);crown.position.set(x+(Math.random()-.5)*.65*s,y+h*.45+j*.75*s,z+(Math.random()-.5)*.65*s);crown.scale.set(1,1.15,.95);crown.castShadow=true;scene.add(crown)}}
-for(let i=0;i<220;i++){let x=(Math.random()-.5)*72,z=(Math.random()-.5)*72;let near=false;for(let [cx,cz,rx,rz] of [[-15,13,5,5],[-5,17,5,5],[6,16,5,5],[16,11,5,5],[-12,-1,6,6],[12,-3,6,6],[-1,-16,9,7],[22,-17,8,6],[-25,-24,8,6]])if(Math.abs(x-cx)<rx&&Math.abs(z-cz)<rz)near=true;if(!near)tree(x,z,.7+Math.random()*.7)}
-for(let i=0;i<160;i++){let x=(Math.random()-.5)*70,z=(Math.random()-.5)*70,y=terrainY(x,z);let s=.35+Math.random()*.65;let b=new THREE.Mesh(new THREE.IcosahedronGeometry(s,1),leafM[Math.floor(Math.random()*leafM.length)]);b.position.set(x,y+s*.55,z);b.scale.y=1.25;b.castShadow=true;scene.add(b)}
-for(let i=0;i<8;i++){let c=new THREE.Mesh(new THREE.SphereGeometry(2.8+Math.random()*2,12,8),new THREE.MeshBasicMaterial({color:0xf4faf6,transparent:true,opacity:.18}));c.position.set(-34+i*10,24+Math.random()*9,-35+Math.random()*12);c.scale.set(1.8,.35,.8);scene.add(c)}
-const marker=new THREE.Mesh(new THREE.CylinderGeometry(.18,.18,.15,20),mat(0xf4e6c4));marker.position.set(0,terrainY(0,0)+.2,0);scene.add(marker);
-document.getElementById('loading').style.display='none';document.getElementById('spin').onclick=()=>{controls.autoRotate=!controls.autoRotate;document.getElementById('spin').textContent=controls.autoRotate?'Pausa giro':'Reanudar giro'};document.getElementById('home').onclick=()=>{camera.position.set(43,38,55);controls.target.set(0,8,0);controls.update()};document.getElementById('labels').onclick=()=>{let show=labelSprites[0].visible;labelSprites.forEach(s=>s.visible=!show);document.getElementById('labels').textContent=show?'Mostrar rótulos':'Ocultar rótulos'};
-addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
-function animate(){requestAnimationFrame(animate);controls.update();renderer.render(scene,camera)}animate();
+(function(){
+ const loading=document.getElementById('loading');
+ function fail(message){loading.className='error';loading.innerHTML='No se pudo iniciar la maqueta 3D.<small>'+String(message||'Comprueba tu conexión y recarga la página.').replace(/[<>&]/g,'')+'</small>';}
+ window.addEventListener('error',e=>{if(loading.style.display!=='none')fail(e.message||'Error al cargar el modelo');});
+ window.addEventListener('unhandledrejection',e=>{if(loading.style.display!=='none')fail(e.reason&&e.reason.message||'Error al iniciar el modelo');});
+ function start(){
+  if(!window.THREE){fail('No se pudo descargar el motor 3D. Actualiza la página o prueba otra red.');return;}
+  try{
+   const THREE=window.THREE;
+   const scene=new THREE.Scene();scene.background=new THREE.Color(0xc9ddd1);scene.fog=new THREE.Fog(0xc9ddd1,72,150);
+   const camera=new THREE.PerspectiveCamera(43,innerWidth/innerHeight,.1,260);
+   const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});
+   renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.7));renderer.setSize(innerWidth,innerHeight);
+   renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+   renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;
+   document.body.appendChild(renderer.domElement);
+   scene.add(new THREE.HemisphereLight(0xeaf5ed,0x526b4c,1.22));
+   const sun=new THREE.DirectionalLight(0xffe5c6,1.65);sun.position.set(-28,48,24);sun.castShadow=true;sun.shadow.mapSize.set(1536,1536);sun.shadow.camera.left=-58;sun.shadow.camera.right=58;sun.shadow.camera.top=58;sun.shadow.camera.bottom=-58;scene.add(sun);
+   const mat=(c,r=.9)=>new THREE.MeshStandardMaterial({color:c,roughness:r});
+   const grass=mat(0x547c55),wood=mat(0x956443),wood2=mat(0xb17d50),roof=mat(0x303a35,.76),stone=mat(0x777d69),earth=mat(0x8b7652);
+   const glass=new THREE.MeshStandardMaterial({color:0xffd99a,emissive:0xffa94d,emissiveIntensity:.45,roughness:.3});
+   const leafM=[mat(0x285c3e),mat(0x39734a),mat(0x477d4e),mat(0x1f5039)],trunk=mat(0x60452e);
+   function terrainY(x,z){return 3.5+.105*(z+18)+2.1*Math.sin((x+9)*.105)+1.1*Math.cos(z*.13)+.7*Math.sin((x+z)*.16);}
+   const groundGeo=new THREE.PlaneGeometry(76,76,92,92);groundGeo.rotateX(-Math.PI/2);
+   const gp=groundGeo.attributes.position;for(let i=0;i<gp.count;i++){const x=gp.getX(i),z=gp.getZ(i);gp.setY(i,terrainY(x,z));}groundGeo.computeVertexNormals();
+   const ground=new THREE.Mesh(groundGeo,grass);ground.receiveShadow=true;scene.add(ground);
+   const base=new THREE.Mesh(new THREE.BoxGeometry(76,2.5,76),mat(0x655b43));base.position.y=-1.35;base.receiveShadow=true;scene.add(base);
+   function box(w,h,d,m,x,y,z,rot=0){const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y+h/2,z);o.rotation.y=rot;o.castShadow=true;o.receiveShadow=true;scene.add(o);return o;}
+   const labels=[];
+   function label(txt,x,y,z){const c=document.createElement('canvas');c.width=512;c.height=128;const ctx=c.getContext('2d');ctx.fillStyle='rgba(22,48,37,.84)';ctx.fillRect(8,8,496,112);ctx.fillStyle='#fff';ctx.font='bold 38px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(txt,256,64);const tex=new THREE.CanvasTexture(c);tex.encoding=THREE.sRGBEncoding;const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false}));sp.position.set(x,y,z);sp.scale.set(8,2,1);scene.add(sp);labels.push(sp);}
+   function cabin(x,z,kind,rot){const y=terrainY(x,z),w=kind==='familiar'?6.2:5.1,d=kind==='familiar'?5.4:4.6;box(w,.35,d,stone,x,y,z,rot);box(w,.22,d,wood2,x,y+.35,z,rot);box(w,2.45,d,wood,x,y+.57,z,rot);box(w*.68,1.35,.08,glass,x,y+1.03,z+d/2+.05,rot);box(w+.9,.22,d*.45,wood2,x,y+.45,z+d*.73,rot);
+    const cap=new THREE.Mesh(new THREE.ConeGeometry(w*.77,1.75,4),roof);cap.position.set(x,y+3.38,z);cap.rotation.y=Math.PI/4;cap.scale.z=d/w;cap.castShadow=true;scene.add(cap);
+    for(let side of [-1,1]){const face=new THREE.Shape();face.moveTo(-w/2,0);face.lineTo(w/2,0);face.lineTo(0,1.2);face.closePath();const fm=new THREE.Mesh(new THREE.ShapeGeometry(face),wood2);fm.position.set(x,y+1.8,z+side*(d/2+.025));fm.rotation.y=rot+(side<0?Math.PI:0);scene.add(fm);}
+    label(kind==='familiar'?'Cabaña familiar':'Cabaña doble',x,y+5.1,z);
+   }
+   cabin(-15,13,'doble',-.16);cabin(-5,17,'doble',.08);cabin(6,16,'doble',-.1);cabin(16,11,'doble',.18);cabin(-12,-1,'familiar',.15);cabin(12,-3,'familiar',-.18);
+   function venue(x,z,w,d,h,name){const y=terrainY(x,z);box(w,h,d,wood2,x,y,z);box(w*.78,h*.52,.09,glass,x,y+.42,z+d/2+.05);const r=new THREE.Mesh(new THREE.ConeGeometry(w*.76,1.7,4),roof);r.position.set(x,y+h+.72,z);r.rotation.y=Math.PI/4;r.scale.z=d/w;r.castShadow=true;scene.add(r);label(name,x,y+h+2.8,z);}
+   venue(-1,-16,11,8,3.2,'Restaurante abierto');box(14,.22,10,wood2,-1,terrainY(-1,-16)+.12,-16);
+   const yy=terrainY(22,-17);box(12,.25,8,wood2,22,yy+.1,-17,.1);for(let i=0;i<4;i++)box(.18,1.1,.18,trunk,17+i*3.2,yy+.25,-20);label('Terraza de yoga',22,yy+3,-17);
+   const roadPts=[];for(let i=0;i<=110;i++){const t=i/110,z=27-t*55,x=-22+44*t+5*Math.sin(t*4*Math.PI);roadPts.push(new THREE.Vector3(x,terrainY(x,z)+.2,z));}
+   const road=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(roadPts),240,1.05,8,false),earth);road.receiveShadow=true;scene.add(road);
+   const py=terrainY(-25,-24);box(13,.22,8,stone,-25,py+.08,-24);for(let i=0;i<3;i++)box(2.3,.08,4,mat(0xaaa58e),-29+i*4,py+.22,-24);label('Acceso y parqueo',-25,py+3,-24);
+   function tree(x,z,s){const y=terrainY(x,z),h=(4+Math.random()*4)*s;const t=new THREE.Mesh(new THREE.CylinderGeometry(.14*s,.28*s,h*.42,7),trunk);t.position.set(x,y+h*.21,z);t.castShadow=true;scene.add(t);for(let j=0;j<3;j++){const c=new THREE.Mesh(new THREE.SphereGeometry((1.45-j*.18)*s,9,7),leafM[Math.floor(Math.random()*leafM.length)]);c.position.set(x+(Math.random()-.5)*.65*s,y+h*.45+j*.75*s,z+(Math.random()-.5)*.65*s);c.scale.set(1,1.15,.95);c.castShadow=true;scene.add(c);}}
+   const clearings=[[-15,13,5,5],[-5,17,5,5],[6,16,5,5],[16,11,5,5],[-12,-1,6,6],[12,-3,6,6],[-1,-16,9,7],[22,-17,8,6],[-25,-24,8,6]];
+   for(let i=0;i<170;i++){const x=(Math.random()-.5)*72,z=(Math.random()-.5)*72;let skip=false;for(const a of clearings)if(Math.abs(x-a[0])<a[2]&&Math.abs(z-a[1])<a[3])skip=true;if(!skip)tree(x,z,.7+Math.random()*.75);}
+   for(let i=0;i<145;i++){const x=(Math.random()-.5)*70,z=(Math.random()-.5)*70,y=terrainY(x,z),s=.3+Math.random()*.65;const shrub=new THREE.Mesh(new THREE.IcosahedronGeometry(s,1),leafM[Math.floor(Math.random()*leafM.length)]);shrub.position.set(x,y+s*.55,z);shrub.scale.y=1.25;scene.add(shrub);}
+   for(let i=0;i<7;i++){const cloud=new THREE.Mesh(new THREE.SphereGeometry(3.5,12,8),new THREE.MeshBasicMaterial({color:0xf4faf6,transparent:true,opacity:.17,depthWrite:false}));cloud.position.set(-34+i*11,25+Math.random()*8,-35+Math.random()*12);cloud.scale.set(1.8,.35,.8);scene.add(cloud);}
+   // Camera interaction implemented locally; no additional controls library is needed.
+   const target=new THREE.Vector3(0,8,0);let yaw=.66,pitch=.72,distance=80,drag=null,autoRotate=true;
+   function setCamera(){pitch=Math.max(.16,Math.min(1.42,pitch));distance=Math.max(25,Math.min(112,distance));camera.position.set(target.x+distance*Math.sin(pitch)*Math.sin(yaw),target.y+distance*Math.cos(pitch),target.z+distance*Math.sin(pitch)*Math.cos(yaw));camera.lookAt(target);}
+   setCamera();renderer.domElement.addEventListener('contextmenu',e=>e.preventDefault());
+   renderer.domElement.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,button:e.button};renderer.domElement.setPointerCapture(e.pointerId);autoRotate=false;document.getElementById('spin').textContent='Reanudar giro';});
+   renderer.domElement.addEventListener('pointerup',()=>drag=null);
+   renderer.domElement.addEventListener('pointercancel',()=>drag=null);
+   renderer.domElement.addEventListener('pointermove',e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.x=e.clientX;drag.y=e.clientY;if(drag.button===2||drag.button===1){const right=new THREE.Vector3(1,0,0).applyQuaternion(camera.quaternion),up=new THREE.Vector3(0,1,0).applyQuaternion(camera.quaternion);target.addScaledVector(right,-dx*distance*.0015);target.addScaledVector(up,dy*distance*.0015);}else{yaw-=dx*.006;pitch+=dy*.006;}setCamera();});
+   renderer.domElement.addEventListener('wheel',e=>{distance*=Math.exp(e.deltaY*.001);setCamera();},{passive:true});
+   document.getElementById('spin').onclick=()=>{autoRotate=!autoRotate;document.getElementById('spin').textContent=autoRotate?'Pausar giro':'Reanudar giro';};
+   document.getElementById('home').onclick=()=>{target.set(0,8,0);yaw=.66;pitch=.72;distance=80;setCamera();};
+   document.getElementById('labels').onclick=()=>{const visible=labels.length?labels[0].visible:true;labels.forEach(l=>l.visible=!visible);document.getElementById('labels').textContent=visible?'Mostrar rótulos':'Ocultar rótulos';};
+   loading.style.display='none';
+   window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+   function animate(){requestAnimationFrame(animate);if(autoRotate){yaw+=.0011;setCamera();}renderer.render(scene,camera);}animate();
+  }catch(err){console.error(err);fail(err&&err.message?err.message:'Error inesperado al construir la escena');}
+ }
+ if(window.THREE)start();else{
+  const poll=setInterval(()=>{if(window.THREE){clearInterval(poll);start();}},100);
+  setTimeout(()=>{clearInterval(poll);if(!window.THREE)fail('El motor 3D no respondió. Comprueba que tu navegador tenga conexión a internet.');},12000);
+ }
 })();
-</script></body></html>
+</script>
+</body></html>
